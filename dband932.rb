@@ -1,13 +1,18 @@
 #!/usr/bin/env ruby
-# encoding: utf-8			# It's specialy comment for Ruby. DO NOT REMOVE AND MOVE TO THE OTHER LINE!
+# encoding: utf-8			# このコメントの編集厳禁。必ず2行目に置くこと
 # vim: ts=4 background=dark
+# 
+# 指定されたスキーマの全テーブル定義を調べて、VARCHAR, TEXTのカラムを探す
+# そのカラムのデータにCP932機種依存文字が入っていたら代替文字に変換する
+#  Usage: this.rb [DBSERVER(default is localhost)] [SCHEMA(default is aff)]
+#
 
 require 'nkf'
 require 'active_record'
 require 'safe_attributes/base'
 
 # CP932拡張文字の変換テーブル
-# some chars are copied from http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1337585398
+# some chars are copied from http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1337585398 . thanks.
 CP932HASHX = {
 	"①" => "(1)",
 	"②" => "(2)",
@@ -152,6 +157,8 @@ def convertCp932Chars(str)
 		return buf
 	end
 
+buf.gsub!(/'/, %q{"})
+
 	# 1文字ずつ変換テーブルと照合してCP932拡張文字かどうかを判別する
 	buf.split(//).each do |c|
 		is_cp932_changed = false
@@ -186,7 +193,6 @@ class CARDatabase
             :host     => host,
             :username => user,
             :password => pwd,
-#            :encoding => 'cp932',
             :reconnect => false,
             :adapter  => 'mysql2',
         )
@@ -218,10 +224,11 @@ class CARDatabase
         return arr
     end
 
+	# varcharの他text, mediumtextも取得する（仕様変更）
     def getVarchars
         arr = Array.new
         ActiveRecord::Base.connection.execute("DESC #{@table}").each do |row|
-            if row[1].index('varchar') != nil
+            if row[1].index('varchar') != nil or row[1].index('mediumtext') != nil or row[1].index('text') != nil 
                 arr.push(row[0])
             end
         end
@@ -263,6 +270,7 @@ class Cp932ConvApp
 		tables = tblobj.getAllTables
 
 		tables.each do |tbl|
+next if tbl != 'content'
 			db = CARDatabase.new(tbl, @db_server, @database)
 
 			puts "/*----------------------*/"
@@ -368,9 +376,11 @@ end
 #
 ####################
 
-c = Cp932ConvApp.new('localhost', 'aff')
+dbserver = ARGV[0] || 'localhost'
+db       = ARGV[1] || 'aff'
+
+c = Cp932ConvApp.new(dbserver, db)
 c.printSql
 puts "/* END */"
 exit(0)
-
 
