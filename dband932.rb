@@ -2,13 +2,12 @@
 # encoding: utf-8			# It's specialy comment for Ruby. DO NOT REMOVE AND MOVE TO THE OTHER LINE!
 # vim: ts=4 background=dark
 
-#require 'mysql2'
 require 'nkf'
 require 'active_record'
 require 'safe_attributes/base'
 
-
 # CP932拡張文字の変換テーブル
+# some chars are copied from http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1337585398
 CP932HASHX = {
 	"①" => "(1)",
 	"②" => "(2)",
@@ -80,22 +79,55 @@ CP932HASHX = {
 	"㍾" => "明治",
 	"㍽" => "大正",
 	"㍼" => "昭和",
-	"≒" => "X",
-	"≡" => "X",
-	"∫" => "X",
-	"∮" => "X",
+	"≒" => "?",
+	"≡" => "?",
+	"∫" => "?",
+	"∮" => "?",
 	"∑" => "Σ",
 	"√" => "(ルート)",
-	"⊥" => "X",
-	"∠" => "X",
-	"∟" => "X",
-	"⊿" => "デルタ",
+	"⊥" => "?",
+	"∠" => "?",
+	"∟" => "?",
+	"⊿" => "(デルタ)",
 	"∵" => "(なぜならば)",
-	"∩" => "X",
-	"∪" => "X",
-	"鐔" => '',	# EFBD
-	"鐓" => '',	# EFBE
-	"鐃" => '',	# EFBF
+	"∩" => "?",
+	"∪" => "?",
+	"彅" => 'なぎ',
+	"髙" => '高',
+	"﨑" => '崎',	
+	"黑" => '黒', 	
+	"塚" => '塚', 	
+	"纊" => 'わた',
+	"兊" => '兌',
+	"匇" => '匇',
+	"喆" => '哲', 
+	"甯" => '寧', 
+	"嵓" => '嵒',
+	"曺" => '曹',
+	"裵" => '裴', 
+	"蠇" => '蠣',
+	"蘒" => '萩',
+	"曻" => '昇',
+	"增" => '増',
+	"晴" => '晴',
+	"朗" => '朗',
+	"杦" => '杉',
+	"桒" => '桑',
+	"栁" => '柳',
+	"橫" => '横',
+	"淸" => '清',
+	"濵" => '浜',
+	"瀨" => '瀬',
+	"精" => '精',
+	"綠" => '緑',
+	"緖" => '緒',
+	"賴" => '頼',
+	"﨣" => '赳',
+	"軏" => '軌',
+	"逸" => '逸',
+	"鄕" => '郷', 
+	"閒" => '間',
+	"靑" => '青',
 }
 
 ########################
@@ -244,8 +276,6 @@ class Cp932ConvApp
 			# テーブルの主キー、VARCHARカラム名を全取得してカンマ区切りの文字列化
 			varchar_cols = (pk_arr + db.getVarchars).join(",")
 
-next unless [ 'content', 'media', 'action_log_201105' ].include?(tbl)
-
 			# データ取得
 			db_data = db.getActiveRecordBase
 			db_data.select(varchar_cols).find_each do |db|
@@ -338,7 +368,7 @@ end
 #
 ####################
 
-c = Cp932ConvApp.new('car-devdbm1u', 'aff')
+c = Cp932ConvApp.new('localhost', 'aff')
 c.printSql
 puts "/* END */"
 exit(0)
