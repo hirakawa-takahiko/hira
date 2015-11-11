@@ -4,12 +4,14 @@
 # 
 # 指定されたスキーマの全テーブル定義を調べて、VARCHAR, TEXTのカラムを探す
 # そのカラムのデータにCP932機種依存文字が入っていたら代替文字に変換する
-#  Usage: this.rb [DBSERVER(default is localhost)] [SCHEMA(default is aff)]
+#
+#  Usage: this.rb [--host=DBSERVER(default is localhost)] [--database=SCHEMA(default is aff)] [tablenames...]
 #
 
 require 'nkf'
 require 'active_record'
 require 'safe_attributes/base'
+require 'optparse'
 
 # CP932拡張文字の変換テーブル
 # some chars are copied from http://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1337585398 . thanks.
@@ -157,7 +159,11 @@ def convertCp932Chars(str)
 		return buf
 	end
 
-buf.gsub!(/'/, %q{"})
+	# データ中に「'」があるとSQLが文法エラーになるため変換
+	buf.gsub!(/'/, %q{"})
+
+	# データの末尾に「\」があるとSQLが文法エラーになるため変換
+	buf.gsub!(/\\\s*$/, '')
 
 	# 1文字ずつ変換テーブルと照合してCP932拡張文字かどうかを判別する
 	buf.split(//).each do |c|
@@ -257,9 +263,14 @@ end
 #############
 
 class Cp932ConvApp
-	def initialize(server='car-dbm2bk', db='aff')
+	def initialize(server='car-dbm2bk', db='aff', tblarr=nil)
 		@db_server = server
 		@database  = db
+		if tblarr.class.to_s == 'Array'
+			@tables = tblarr 
+		else
+			@tables = []
+		end
 	end
 
 	def printSql()
@@ -270,7 +281,8 @@ class Cp932ConvApp
 		tables = tblobj.getAllTables
 
 		tables.each do |tbl|
-next if tbl != 'content'
+			next unless @tables.include?(tbl)  # コンストラクターでテーブル指定された場合はそのテーブルのみ処理する
+
 			db = CARDatabase.new(tbl, @db_server, @database)
 
 			puts "/*----------------------*/"
@@ -376,10 +388,13 @@ end
 #
 ####################
 
-dbserver = ARGV[0] || 'localhost'
-db       = ARGV[1] || 'aff'
+params = ARGV.getopts('', 'host:', 'database:')
 
-c = Cp932ConvApp.new(dbserver, db)
+dbserver = params['host']     || 'localhost'
+db       = params['database'] || 'aff'
+tbls     = ARGV if ARGV.length > 0
+
+c = Cp932ConvApp.new(dbserver, db, tbls)
 c.printSql
 puts "/* END */"
 exit(0)
