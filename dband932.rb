@@ -269,7 +269,7 @@ class Cp932ConvApp
 		if tblarr.class.to_s == 'Array'
 			@tables = tblarr 
 		else
-			@tables = []
+			@tables = nil
 		end
 	end
 
@@ -281,7 +281,9 @@ class Cp932ConvApp
 		tables = tblobj.getAllTables
 
 		tables.each do |tbl|
-			next unless @tables.include?(tbl)  # コンストラクターでテーブル指定された場合はそのテーブルのみ処理する
+			if @tables != nil
+				next unless @tables.include?(tbl)  # コンストラクターでテーブル指定された場合はそのテーブルのみ処理する
+			end
 
 			db = CARDatabase.new(tbl, @db_server, @database)
 
@@ -298,7 +300,9 @@ class Cp932ConvApp
 
 			# データ取得
 			db_data = db.getActiveRecordBase
-			db_data.select(varchar_cols).find_each do |db|
+			db_data.table_name  = tbl
+			db_data.primary_key = pk_arr[0]
+			db_data.select(varchar_cols).find_each(:batch_size=>500) do |db|
 				updsql = UpdateSql.new(tbl)	# UPDATE文作成クラス
 
 				db.attributes.each do |col_name, val|	# カラム名、値
