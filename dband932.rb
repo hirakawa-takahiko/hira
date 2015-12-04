@@ -294,9 +294,12 @@ class Cp932ConvApp
 
 			# テーブルの主キーカラム名取得
 			pk_arr = db.getPkeys
+			next if pk_arr.length <= 0
 
 			# テーブルの主キー、VARCHARカラム名を全取得してカンマ区切りの文字列化
-			varchar_cols = (pk_arr + db.getVarchars).join(",")
+			varchar_arr = db.getVarchars.map {|item| item = "`#{item}`"}	# SQLのキーワードとぶつかるカラム名があるので``でエスケープ	
+			#varchar_cols = (pk_arr + db.getVarchars).join(",")
+			varchar_cols = (pk_arr + varchar_arr).join(",")
 
 			# データ取得
 			db_data = db.getActiveRecordBase
@@ -375,9 +378,11 @@ class UpdateSql
 		sql = "UPDATE #{@tablename} SET "
 		sql += @varchar_arr.collect{|v| v}.join(",")
 		sql += " WHERE "
+		arr = Array.new;
 		@pkey_arr.each do |pk_hash|
-			sql += pk_hash.collect{|k, v| %Q<#{k} = '#{v}'>}.join(" AND ")
+			arr.push(pk_hash.collect{|k, v| %Q<#{k} = '#{v}'>})
 		end
+		sql += arr.join(' AND ');
 		sql += ';'
 		return sql
 	end
