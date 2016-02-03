@@ -200,7 +200,7 @@ class CARDatabase
             :username => user,
             :password => pwd,
             :reconnect => false,
-            :adapter  => 'mysql2',
+            :adapter  => 'mysql2'
         )
         @table = tbl
 
